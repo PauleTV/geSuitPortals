@@ -23,7 +23,14 @@ public class PortalsManager {
     public static boolean RECEIVED = false;
     public static HashMap<World, ArrayList<Portal>> PORTALS = new HashMap<>();
     public static HashMap<String, Location> pendingTeleports = new HashMap<>();
-
+    
+    public static HashMap<World, HashMap<Long, ArrayList<Portal>>> PORTALE = new HashMap<>();
+    public static HashMap<String, Portal> PORTALNAMES = new HashMap<>();
+    
+    public static long packXZIntoLong(int x, int z) {
+        return ((long)x & 0xffffffff) | ((long)z & 0xffffffff) << 32;
+    }
+    
     public static void deletePortal( String name, String string ) {
         ByteArrayOutputStream b = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream( b );
@@ -43,20 +50,18 @@ public class PortalsManager {
         Portal p = getPortal( name );
         System.out.println( "removing portal " + name );
         if ( p != null ) {
-            PORTALS.get( p.getWorld() ).remove( p );
+            for (int z = p.getMin().getBlockZ() >> 4; z <= p.getMax().getBlockZ() >> 4; z++) {
+                for (int x = p.getMin().getBlockX() >> 4; x <= p.getMax().getBlockZ() >> 4; x++) {
+                    long chk = packXZIntoLong( x , z );
+                    PORTALE.get( p.getMin().getWorld() ).get( chk ).remove( p );
+                }
+            }
             p.clearPortal();
         }
     }
 
     public static Portal getPortal( String name ) {
-        for ( ArrayList<Portal> list : PORTALS.values() ) {
-            for ( Portal p : list ) {
-                if ( p.getName().equals( name ) ) {
-                    return p;
-                }
-            }
-        }
-        return null;
+        return PORTALNAMES.get(name);
     }
 
     public static void getPortalsList( String name ) {
@@ -125,18 +130,30 @@ public class PortalsManager {
 
     }
 
-    public static void addPortal( String name, String type, String dest, String filltype, Location max, Location min ) {
+        public static void addPortal( String name, String type, String dest, String filltype, Location max, Location min ) {
         if ( max.getWorld() == null ) {
             Bukkit.getConsoleSender().sendMessage( ChatColor.RED + "World does not exist portal " + name + " will not load :(" );
             return;
         }
         Portal portal = new Portal( name, type, dest, filltype, max, min );
-        ArrayList<Portal> ps = PORTALS.get( max.getWorld() );
-        if ( ps == null ) {
-            ps = new ArrayList<>();
-            PORTALS.put( max.getWorld(), ps );
+        PORTALNAMES.put(name, portal);
+        for (int z = min.getBlockZ() >> 4; z <= max.getBlockZ() >> 4; z++) {
+            for (int x = min.getBlockX() >> 4; x <= max.getBlockZ() >> 4; x++) {
+                long chk = packXZIntoLong( x , z );
+        
+                HashMap<Long, ArrayList<Portal>> wld = PORTALE.get( max.getWorld() );
+                if ( wld == null ) {
+                    wld = new HashMap<>();
+                    PORTALE.put( max.getWorld(), wld );
+                }
+                ArrayList<Portal> chkl = wld.get( chk );
+                if ( chkl == null ) {
+                    chkl = new ArrayList<>();
+                    wld.put( chk , chkl );
+                }
+                chkl.add( portal );
+            }
         }
-        ps.add( portal );
         portal.fillPortal();
     }
 

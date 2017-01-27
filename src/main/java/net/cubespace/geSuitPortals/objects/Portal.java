@@ -16,12 +16,16 @@ public class Portal {
 	private ArrayList<Loc> blocks = new ArrayList<>();
 	private FillType fillType;
 	private World world;
+	private Location max;
+	private Location min;
 
 	public Portal(String name, String type, String dest, String fillType, Location max, Location min) {
 		this.name = name;
 		this.type = type;
 		this.dest = dest;
 		this.world = max.getWorld();
+		this.max = max;
+		this.min = min;
 		try{
 		this.fillType = FillType.valueOf(fillType.toUpperCase());
 		}catch(Exception e){
@@ -54,6 +58,14 @@ public class Portal {
 	
 	public FillType getFillType(){
 		return fillType;
+	}
+	
+	public Location getMax(){
+		return max;
+	}
+	
+	public Location getMin(){
+		return min;
 	}
 	
 	public void fillPortal(){
